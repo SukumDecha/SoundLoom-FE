@@ -2,7 +2,6 @@ export interface RoomSettings {
   music: {
     loop: boolean
     shuffle: boolean
-    volume: number
   }
   room: {
     password: string | null

@@ -1,61 +1,13 @@
-import { useState, useEffect } from 'react'
-import io, { Socket } from 'socket.io-client'
+'use client'
+
+import { useEffect } from 'react'
+import { useSocketStore } from '@/features/shared/stores/socket.store'
 import { Room, RoomSettings } from '../types'
-
-/* eslint-disable no-use-before-define */
-class SocketClient {
-  private static instance: SocketClient | null = null
-
-  public socket: Socket | null = null
-
-  public static getInstance(): SocketClient {
-    if (!SocketClient.instance) SocketClient.instance = new SocketClient()
-
-    return SocketClient.instance
-  }
-
-  connect() {
-    if (!this.socket) {
-      this.socket = io('http://localhost:4001/rooms', {
-        transports: ['websocket'],
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      })
-
-      this.socket.on('connect', () => {
-        console.log('Socket connected')
-      })
-
-      this.socket.on('disconnect', () => {
-        console.log('Socket disconnected')
-      })
-    }
-    return this.socket
-  }
-
-  disconnect() {
-    if (this.socket) {
-      this.socket.disconnect()
-      this.socket = null
-    }
-  }
-}
+import { useRoomStore } from '../stores/room.store'
 
 export function useSocketRoom() {
-  const [socket, setSocket] = useState<Socket | null>(null)
-  const [room, setRoom] = useState<Room | null>(null)
-  const [allRooms, setAllRooms] = useState<Room[]>([])
-
-  useEffect(() => {
-    const socketClient = SocketClient.getInstance()
-    const connectedSocket = socketClient.connect()
-    setSocket(connectedSocket)
-
-    return () => {
-      socketClient.disconnect()
-    }
-  }, [])
+  const socket = useSocketStore((state) => state.socket)
+  const { room, setRoom, allRooms, setAllRooms } = useRoomStore()
 
   const createRoom = (payload: { host: string; password?: string }) => {
     return new Promise<string>((resolve, reject) => {
@@ -68,7 +20,10 @@ export function useSocketRoom() {
   const deleteRoom = (roomId: string) => {
     return new Promise<void>((resolve, reject) => {
       socket?.emit('deleteRoom', roomId)
-      socket?.once('roomDeleted', () => resolve())
+      socket?.once('roomDeleted', (data) => {
+        setRoom(null)
+        resolve(data.roomId)
+      })
       socket?.once('error', (error) => reject(error))
     })
   }
@@ -76,7 +31,10 @@ export function useSocketRoom() {
   const deleteAllRooms = () => {
     return new Promise<void>((resolve, reject) => {
       socket?.emit('deleteAllRooms')
-      socket?.once('allRoomsDeleted', () => resolve())
+      socket?.once('allRoomsDeleted', () => {
+        setAllRooms([])
+        resolve()
+      })
       socket?.once('error', (error) => reject(error))
     })
   }
@@ -92,12 +50,12 @@ export function useSocketRoom() {
     })
   }
 
-  const getRoomDetails = (roomId: string) => {
-    return new Promise<Room>((resolve, reject) => {
-      socket?.emit('getRoomDetails', roomId)
-      socket?.once('roomDetails', (roomData) => {
-        setRoom(roomData)
-        resolve(roomData)
+  const leaveRoom = (roomId: string) => {
+    return new Promise<void>((resolve, reject) => {
+      socket?.emit('leaveRoom', roomId)
+      socket?.once('roomLeft', () => {
+        setRoom(null)
+        resolve()
       })
       socket?.once('error', (error) => reject(error))
     })
@@ -116,6 +74,9 @@ export function useSocketRoom() {
       socket?.emit('addToQueue', { roomId, music })
       socket?.once('queueUpdated', (updatedRoom) => {
         setRoom(updatedRoom)
+        setAllRooms((rooms) =>
+          rooms.map((room) => (room.id === updatedRoom.id ? updatedRoom : room))
+        )
         resolve(updatedRoom)
       })
       socket?.once('error', (error) => reject(error))
@@ -127,6 +88,9 @@ export function useSocketRoom() {
       socket?.emit('removeFromQueue', { roomId, musicId })
       socket?.once('queueUpdated', (updatedRoom) => {
         setRoom(updatedRoom)
+        setAllRooms((rooms) =>
+          rooms.map((room) => (room.id === updatedRoom.id ? updatedRoom : room))
+        )
         resolve(updatedRoom)
       })
       socket?.once('error', (error) => reject(error))
@@ -150,7 +114,11 @@ export function useSocketRoom() {
   const getNextMusic = (roomId: string) => {
     return new Promise<any>((resolve, reject) => {
       socket?.emit('getNextMusic', roomId)
-      socket?.once('nextMusicReady', (nextMusic) => resolve(nextMusic))
+      socket?.once('nextMusicReady', (nextMusic) => {
+        // Update room with new current music
+        setRoom((room) => ({ ...room, currentMusic: nextMusic }) as Room)
+        resolve(nextMusic)
+      })
       socket?.once('error', (error) => reject(error))
     })
   }
@@ -170,33 +138,34 @@ export function useSocketRoom() {
   useEffect(() => {
     if (!socket) return
 
-    const handleUserJoined = (data: any) => {
-      console.log('User joined:', data.clientId)
-    }
-
-    const handleRoomUpdate = (updatedRoom: Room) => {
-      setRoom(updatedRoom)
-    }
-
-    const handleRoomCreated = async () => {
+    const handleFetchRooms = async () => {
       const allRooms = await getAllRooms()
       setAllRooms(allRooms)
     }
 
-    handleRoomCreated()
+    const handleRoomUpdate = (updatedRoom: Room) => {
+      setAllRooms((rooms) =>
+        rooms.map((room) => (room.id === updatedRoom.id ? updatedRoom : room))
+      )
+    }
 
-    socket.on('userJoined', handleUserJoined)
-    socket.on('queueUpdated', handleRoomUpdate)
+    const handleRoomDeleted = (roomId: string) => {
+      setAllRooms((rooms) => rooms.filter((room) => room.id !== roomId))
+    }
+
+    handleFetchRooms()
+
+    socket.on('newRoomCreated', handleFetchRooms)
+    socket.on('roomDeleted', handleRoomDeleted)
     socket.on('roomSettingsUpdated', handleRoomUpdate)
-    socket.on('roomCreated', handleRoomCreated)
-
     return () => {
-      socket.off('userJoined', handleUserJoined)
-      socket.off('queueUpdated', handleRoomUpdate)
+      socket.off('newRoomCreated', handleFetchRooms)
       socket.off('roomSettingsUpdated', handleRoomUpdate)
-      socket.off('roomCreated', handleRoomCreated)
+      socket.off('roomDeleted', handleRoomDeleted)
     }
   }, [socket])
+
+  console.log('Room: ', room)
 
   return {
     socket,
@@ -206,7 +175,7 @@ export function useSocketRoom() {
     deleteRoom,
     deleteAllRooms,
     joinRoom,
-    getRoomDetails,
+    leaveRoom,
     addToQueue,
     removeFromQueue,
     updateRoomSettings,
@@ -214,5 +183,3 @@ export function useSocketRoom() {
     changeRoomPassword,
   }
 }
-
-export default SocketClient
