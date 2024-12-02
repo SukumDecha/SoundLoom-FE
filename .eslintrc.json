@@ -44,6 +44,12 @@
     "implicit-arrow-linebreak": "off", // let it handle by prettier
     "react/require-default-props": "off", // let it handle by TypeScript
     "nonblock-statement-body-position": "off", // let it handle by prettier
-    "react/jsx-one-expression-per-line": "off" // let it handle by prettier
+    "react/jsx-one-expression-per-line": "off", // let it handle by prettier
+    "@typescript-eslint/no-explicit-any": "off",
+    "no-use-before-define": ["off"],
+    "consistent-return": "off",
+    "no-return-assign": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "react/no-unused-prop-types": "off"
   }
 }
