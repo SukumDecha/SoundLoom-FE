@@ -127,7 +127,7 @@ export default function MusicRoom({ room, onQuit }: IProps) {
   }
 
   return (
-    <div className={`md:w-4/5' flex h-screen w-full bg-black text-white`}>
+    <div className="flex h-screen w-full bg-black text-white md:w-4/5">
       {/* Main Content */}
       <div className="flex flex-1 gap-6 p-8">
         {/* Current Playing Section */}
@@ -169,7 +169,7 @@ export default function MusicRoom({ room, onQuit }: IProps) {
               />
               <Button
                 type="text"
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-white text-white"
+                className="flex h-12 w-12 items-center justify-center rounded-full text-white"
                 icon={isPlaying ? <PauseOutlined /> : <PlayCircleOutlined />}
                 onClick={isPlaying ? handlePause : handlePlay}
               />

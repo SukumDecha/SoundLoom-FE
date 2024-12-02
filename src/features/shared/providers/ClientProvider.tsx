@@ -9,10 +9,7 @@ import SocketProvider from './SocketProvider'
 const { defaultAlgorithm, darkAlgorithm } = theme
 
 const ClientProvider = ({ children }: IComponentProps) => {
-  const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)')
-  const [isDarkMode, setIsDarkMode] = useState(
-    prefersDarkScheme.matches || false
-  )
+  const [isDarkMode, setIsDarkMode] = useState(false)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
