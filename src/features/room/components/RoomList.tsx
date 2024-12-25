@@ -5,15 +5,38 @@ import { useNotificationStore } from '@/features/shared/stores/notification.stor
 import { useRouter } from 'next/navigation'
 import RoomCard from './RoomCard'
 import CreateRoomModal from './modals/CreateRoomModal'
-import { useSocketRoom } from '../hooks/useSocketRoom'
+import useSocketRoom from '../hooks/useSocketRoom'
 
 const { Title } = Typography
 
-const RoomLandingPage: React.FC = () => {
+interface IFloatButtonProps {
+  onCreate: () => void
+  onDelete: () => void
+}
+const renderFloatButton = ({ onCreate, onDelete }: IFloatButtonProps) => (
+  <FloatButton.Group shape="circle">
+    <FloatButton
+      icon={<PlusOutlined />}
+      type="primary"
+      style={{ right: 24, bottom: 24 }}
+      onClick={onCreate}
+    />
+
+    <FloatButton
+      icon={<DeleteOutlined />}
+      type="primary"
+      style={{ right: 24, bottom: 24 }}
+      onClick={onDelete}
+    />
+  </FloatButton.Group>
+)
+
+const RoomList: React.FC = () => {
   const [createRoomModal, setCreateRoomModal] = useState(false)
   const { joinRoom, allRooms, deleteAllRooms } = useSocketRoom()
 
   const router = useRouter()
+
   const openNotification = useNotificationStore(
     (state) => state.openNotification
   )
@@ -62,41 +85,13 @@ const RoomLandingPage: React.FC = () => {
         ))}
       </Row>
 
-      <FloatButton.Group shape="circle">
-        <FloatButton
-          icon={<PlusOutlined />}
-          type="primary"
-          style={{ right: 24, bottom: 24 }}
-          onClick={() => setCreateRoomModal(true)}
-        />
-
-        <FloatButton
-          icon={<DeleteOutlined />}
-          type="primary"
-          style={{ right: 24, bottom: 24 }}
-          onClick={() => {
-            try {
-              deleteAllRooms()
-              openNotification({
-                type: 'success',
-                message: 'All rooms deleted successfully',
-                description: 'All rooms have been deleted',
-              })
-            } catch (error) {
-              console.error('Delete all rooms failed', error)
-              openNotification({
-                type: 'error',
-                message: 'Delete all rooms failed',
-                description: 'Please try again later',
-              })
-            }
-          }}
-        />
-      </FloatButton.Group>
-
+      {renderFloatButton({
+        onCreate: () => setCreateRoomModal(true),
+        onDelete: deleteAllRooms,
+      })}
       <CreateRoomModal open={createRoomModal} onClose={handleCloseModal} />
     </div>
   )
 }
 
-export default RoomLandingPage
+export default RoomList

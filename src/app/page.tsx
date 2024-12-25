@@ -1,7 +1,7 @@
 'use client'
 
-import RoomLandingPage from '@/features/room/components/RoomList'
+import MusicRoomList from '@/features/room/components/RoomList'
 
 export default function Home() {
-  return <RoomLandingPage />
+  return <MusicRoomList />
 }

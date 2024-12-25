@@ -2,10 +2,10 @@
 
 import { useEffect } from 'react'
 import { useSocketStore } from '@/features/shared/stores/socket.store'
-import { Room, RoomSettings } from '../types'
+import { Room } from '../../../types/room'
 import { useRoomStore } from '../stores/room.store'
 
-export function useSocketRoom() {
+export default function useSocketRoom() {
   const socket = useSocketStore((state) => state.socket)
   const { room, setRoom, allRooms, setAllRooms } = useRoomStore()
 
@@ -97,13 +97,13 @@ export function useSocketRoom() {
     })
   }
 
-  const updateRoomSettings = (payload: {
+  const updateRoom = (payload: {
     roomId: string
-    settings: Partial<RoomSettings>
+    settings: Partial<Room>
   }) => {
     return new Promise<Room>((resolve, reject) => {
-      socket?.emit('updateRoomSettings', payload)
-      socket?.once('roomSettingsUpdated', (updatedRoom) => {
+      socket?.emit('updateRoom', payload)
+      socket?.once('roomUpdated', (updatedRoom) => {
         setRoom(updatedRoom)
         resolve(updatedRoom)
       })
@@ -111,9 +111,9 @@ export function useSocketRoom() {
     })
   }
 
-  const getNextMusic = (roomId: string) => {
+  const handlePlayNextSong = (roomId: string) => {
     return new Promise<any>((resolve, reject) => {
-      socket?.emit('getNextMusic', roomId)
+      socket?.emit('playNextMusic', roomId)
       socket?.once('nextMusicReady', (nextMusic) => {
         // Update room with new current music
         setRoom((room) => ({ ...room, currentMusic: nextMusic }) as Room)
@@ -123,16 +123,16 @@ export function useSocketRoom() {
     })
   }
 
-  const changeRoomPassword = (roomId: string, newPassword: string) => {
-    return new Promise<Room>((resolve, reject) => {
-      socket?.emit('changeRoomPassword', { roomId, newPassword })
-      socket?.once('roomPasswordChanged', (updatedRoom) => {
-        setRoom(updatedRoom)
-        resolve(updatedRoom)
-      })
-      socket?.once('error', (error) => reject(error))
-    })
-  }
+  // const changeRoomPassword = (roomId: string, newPassword: string) => {
+  //   return new Promise<Room>((resolve, reject) => {
+  //     socket?.emit('changeRoomPassword', { roomId, newPassword })
+  //     socket?.once('roomPasswordChanged', (updatedRoom) => {
+  //       setRoom(updatedRoom)
+  //       resolve(updatedRoom)
+  //     })
+  //     socket?.once('error', (error) => reject(error))
+  //   })
+  // }
 
   // Listen for room events
   useEffect(() => {
@@ -165,8 +165,6 @@ export function useSocketRoom() {
     }
   }, [socket])
 
-  console.log('Room: ', room)
-
   return {
     socket,
     room,
@@ -178,8 +176,7 @@ export function useSocketRoom() {
     leaveRoom,
     addToQueue,
     removeFromQueue,
-    updateRoomSettings,
-    getNextMusic,
-    changeRoomPassword,
+    updateRoom,
+    handlePlayNextSong,
   }
 }
