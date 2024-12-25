@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Room } from '../types'
+import { Room } from '../../../types/room'
 
 type RoomStore = {
   room: Room | null

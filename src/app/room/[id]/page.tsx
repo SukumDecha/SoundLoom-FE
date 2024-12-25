@@ -1,7 +1,7 @@
 'use client'
 
-import MusicRoom from '@/features/room/components/MusicRoom'
-import { useSocketRoom } from '@/features/room/hooks/useSocketRoom'
+import MusicRoom from '@/features/room/components/RoomWrapper'
+import useSocketRoom from '@/features/room/hooks/useSocketRoom'
 import { useNotificationStore } from '@/features/shared/stores/notification.store'
 import { useSocketStore } from '@/features/shared/stores/socket.store'
 import { useRouter } from 'next/navigation'
@@ -13,13 +13,14 @@ interface IProps {
 }
 
 const MusicRoomPage = ({ params }: IProps) => {
-  const router = useRouter()
   const socket = useSocketStore((state) => state.socket)
+  const router = useRouter()
+
   const openNotification = useNotificationStore(
     (state) => state.openNotification
   )
 
-  const { room, leaveRoom } = useSocketRoom()
+  const { room, leaveRoom, handlePlayNextSong } = useSocketRoom()
 
   const { id } = params
 
@@ -46,11 +47,6 @@ const MusicRoomPage = ({ params }: IProps) => {
     const validateSocket = async () => {
       if (!socket) return
       if (!room) {
-        openNotification({
-          message: 'Room not found',
-          description: 'Please try again later',
-          type: 'error',
-        })
         router.replace('/')
       }
     }
@@ -60,7 +56,7 @@ const MusicRoomPage = ({ params }: IProps) => {
 
   return (
     <div className="container flex h-full w-full justify-center">
-      <MusicRoom room={room} onQuit={handleQuit} />
+      <MusicRoom room={room} onQuit={handleQuit} onPlayNextSong={handlePlayNextSong} />
     </div>
   )
 }

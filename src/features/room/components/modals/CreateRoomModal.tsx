@@ -2,7 +2,7 @@ import { Button, Form, Input, Modal } from 'antd'
 import { useNotificationStore } from '@/features/shared/stores/notification.store'
 import { useRouter } from 'next/navigation'
 import { IError } from '@/features/shared/types'
-import { useSocketRoom } from '../../hooks/useSocketRoom'
+import useSocketRoom from '../../hooks/useSocketRoom'
 
 interface IProps {
   open: boolean
