@@ -2,7 +2,7 @@
 
 import { ConfigProvider, theme } from 'antd'
 import { useEffect, useState } from 'react'
-import { IComponentProps } from '../types'
+import { IComponentProps } from '@/types/shared'
 import Notification from '../components/Notification'
 import SocketProvider from './SocketProvider'
 

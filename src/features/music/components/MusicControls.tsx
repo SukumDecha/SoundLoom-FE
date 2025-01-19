@@ -9,7 +9,8 @@ import {
 
 interface MusicControlsProps {
     isPlaying: boolean;
-    progress: number;
+    progress: number; // Current progress in seconds
+    duration: number; // Total duration in seconds
     onProgressChange: (value: number) => void;
     onPlay: () => void;
     onPause: () => void;
@@ -20,17 +21,31 @@ interface MusicControlsProps {
 export const MusicControls = ({
     isPlaying,
     progress,
+    duration,
     onProgressChange,
     onPlay,
     onPause,
     onNext,
     onPrevious,
 }: MusicControlsProps) => {
+    const seconds = Math.floor(progress * duration / 100)
+    // Format time in MM:SS format
+    const formatTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    };
+
     return (
         <div className="mt-8">
+            {/* Display current time and total duration */}
+            <div className="flex justify-between text-white mb-2">
+                <span>{formatTime(seconds)}</span>
+                <span>{formatTime(duration)}</span>
+            </div>
             <Slider
-                value={progress}
-                onChange={onProgressChange}
+                value={(progress)} // Progress as percentage
+                onChange={(value) => onProgressChange(value)} // Convert percentage back to seconds
                 className="[&_.ant-slider-handle]:border-white [&_.ant-slider-rail]:bg-gray-800 [&_.ant-slider-track]:bg-white"
             />
             <div className="mt-4 flex items-center justify-center gap-8">

@@ -1,8 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { io, Socket } from 'socket.io-client'
-import { IComponentProps } from '../types'
+import { IComponentProps } from '@/types/shared'
 import { useSocketStore } from '../stores/socket.store'
 
 /* eslint-disable no-use-before-define */
@@ -19,7 +19,7 @@ class SocketClient {
 
   connect() {
     if (!this.socket) {
-      this.socket = io('http://localhost:4001/rooms', {
+      this.socket = io(`${process.env.NEXT_PUBLIC_SOCKET_ENDPOINT}/rooms`, {
         transports: ['websocket'],
         reconnection: true,
         reconnectionAttempts: 5,
@@ -27,13 +27,14 @@ class SocketClient {
       })
 
       this.socket.on('connect', () => {
-        console.log('Socket connected')
+        console.log('🎉 Connected to socket')
       })
 
       this.socket.on('disconnect', () => {
-        console.log('Socket disconnected')
+        console.log('😢 Disconnected from socket')
       })
     }
+
     return this.socket
   }
 

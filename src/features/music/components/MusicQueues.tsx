@@ -1,7 +1,8 @@
-import { Button, List } from 'antd';
+import { Button, List, Tooltip } from 'antd';
 import { SearchOutlined, EllipsisOutlined } from '@ant-design/icons';
 import { Music } from '@/types/music';
 import Image from 'next/image';
+import MusicQueueDropdown from './modals/MusicQueueDropdown';
 
 interface MusicQueueProps {
     queue: Music[];
@@ -37,7 +38,7 @@ export const MusicQueue = ({ queue, onSearchClick, onMusicSelect }: MusicQueuePr
                                     <Image
                                         width={48}
                                         height={48}
-                                        src={`https://img.youtube.com/vi/${music.snippet.thumbnails.default.url}`}
+                                        src={music.snippet.thumbnails.default.url}
                                         alt={music.snippet.title}
                                         className="h-full w-full object-cover"
                                     />
@@ -46,7 +47,9 @@ export const MusicQueue = ({ queue, onSearchClick, onMusicSelect }: MusicQueuePr
                                     <div className="font-medium">{music.snippet.title}</div>
                                     <div className="text-sm text-gray-400">{music.snippet.channelTitle}</div>
                                 </div>
-                                <EllipsisOutlined className="hidden text-gray-400 group-hover:block" />
+                                <MusicQueueDropdown musicId={music.id.videoId}>
+                                    <EllipsisOutlined className="text-gray-400 group-hover:text-white group-hover:cursor-pointer" />
+                                </MusicQueueDropdown>
                             </div>
                         )}
                     />
