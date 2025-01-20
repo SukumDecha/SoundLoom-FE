@@ -1,6 +1,5 @@
 import { Dropdown, type MenuProps } from "antd"
 import { IconTrash } from "@tabler/icons-react"
-import { IComponentProps } from "@/types/shared"
 import useSocketRoom from "@/features/room/hooks/useSocketRoom"
 
 const items: MenuProps['items'] = [{

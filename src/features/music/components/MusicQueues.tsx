@@ -21,9 +21,8 @@ export const MusicQueue = ({ queue, onSearchClick, onMusicSelect }: MusicQueuePr
                 <Button
                     onClick={onSearchClick}
                     className="flex w-full items-center justify-center gap-2 rounded-full bg-white/10 py-2 text-white hover:bg-white/20"
-                    icon={<SearchOutlined />}
                 >
-                    Search Music
+                    <span><SearchOutlined className="mr-1" /> Search Music</span>
                 </Button>
 
                 {queue.length > 0 ? (

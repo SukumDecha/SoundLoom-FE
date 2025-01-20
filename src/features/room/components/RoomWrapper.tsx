@@ -20,10 +20,14 @@ import { youtubeOpts } from '@/features/shared/consts/youtube';
 interface RoomWrapperProps {
   room: Room | null;
   onQuit: () => void;
-  onPlayNextSong: (roomId: string) => void;
+  onUpdateRoom: (payload: {
+    roomId: string;
+    updatedRoom: Partial<Room>;
+  }) => Promise<Room>
+  onPlayNextSong: (roomId: string) => Promise<Room>;
 }
 
-const RoomWrapper = ({ room, onQuit, onPlayNextSong }: RoomWrapperProps) => {
+const RoomWrapper = ({ room, onQuit, onPlayNextSong, onUpdateRoom }: RoomWrapperProps) => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isEnded, setIsEnded] = useState<boolean>(false);
   const [isReady, setIsReady] = useState<boolean>(false)
@@ -86,11 +90,11 @@ const RoomWrapper = ({ room, onQuit, onPlayNextSong }: RoomWrapperProps) => {
     if (isReady && room?.currentMusic && !hasInitialized) {
       setProgress(0)
 
-      synchronizationTimeout.current = setTimeout(() => {
+      synchronizationTimeout.current = setTimeout(async () => {
 
-        socket?.emit('updatePlayback', {
+        await socket?.emit('updatePlayback', {
           roomId: room.id,
-          currentTime: 0,
+          currentTime: room.settings.music?.startTimestamp,
           isPlaying: true
         });
 
@@ -112,7 +116,6 @@ const RoomWrapper = ({ room, onQuit, onPlayNextSong }: RoomWrapperProps) => {
 
   useEffect(() => {
     if (room && !room.currentMusic && room.queues.length > 0) {
-      // onPlayNextSong(room.id);
       doPlayNextSong()
     }
   }, [room]);
@@ -145,26 +148,36 @@ const RoomWrapper = ({ room, onQuit, onPlayNextSong }: RoomWrapperProps) => {
     if (!room) return;
 
     if ((!room.currentMusic || isEnded) && room.queues.length > 0) {
-      await onPlayNextSong(room.id);
+      const updatedRoom = await onPlayNextSong(room.id);
 
       // After playing next song, update the playback state for all clients
-      await socket?.emit('updatePlayback', {
-        roomId: room.id,
-        currentTime: 0,
-        isPlaying: true
-      });
+      if (updatedRoom.currentMusic) {
+        await socket?.emit('updatePlayback', {
+          roomId: room.id,
+          currentTime: 0,
+          isPlaying: true
+        });
 
+        setIsEnded(false);
+        setIsReady(false)
+        setHasInitialized(false)
+        setProgress(0)
+      }
+    } else if ((room.currentMusic && isEnded) && room.queues.length === 0) {
+      await onUpdateRoom({
+        roomId: room.id,
+        updatedRoom: {
+          ...room,
+          currentMusic: null,
+        },
+      })
+
+      setHasInitialized(false);
       setIsEnded(false);
       setIsReady(false)
-      setHasInitialized(false)
       setProgress(0)
+      stopProgressTracking()
     }
-  };
-
-  const doChangeVolume = (value: number) => {
-    setVolume(value);
-
-    if (playerRef.current) playerRef.current.setVolume(value);
   };
 
   const doSeekTo = (value: number) => {
@@ -179,6 +192,12 @@ const RoomWrapper = ({ room, onQuit, onPlayNextSong }: RoomWrapperProps) => {
       currentTime: newTime,
       isPlaying: isPlaying,
     });
+  };
+
+  const doChangeVolume = (value: number) => {
+    setVolume(value);
+
+    if (playerRef.current) playerRef.current.setVolume(value);
   };
 
   const startProgressTracking = () => {
@@ -202,7 +221,7 @@ const RoomWrapper = ({ room, onQuit, onPlayNextSong }: RoomWrapperProps) => {
 
   const synchronizePlayback = () => {
     if (!room?.settings.music.startTimestamp || !playerRef.current || !isReady) {
-      console.log("Synchronization skipped - not ready");
+      console.error("Synchronization skipped - not ready");
       return;
     }
 

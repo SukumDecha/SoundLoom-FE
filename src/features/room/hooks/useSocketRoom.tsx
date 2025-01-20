@@ -83,9 +83,9 @@ export default function useSocketRoom() {
     })
   }
 
-  const updateRoom = (payload: {
+  const doUpdateRoom = (payload: {
     roomId: string
-    settings: Partial<Room>
+    updatedRoom: Partial<Room>
   }) => {
     return new Promise<Room>((resolve, reject) => {
       socket?.emit('updateRoom', payload)
@@ -94,8 +94,9 @@ export default function useSocketRoom() {
   }
 
   const doPlayNextMusic = async (roomId: string) => {
-    return new Promise<any>((resolve, reject) => {
+    return new Promise<Room>((resolve, reject) => {
       socket?.emit('playNextMusic', roomId)
+      socket?.once('nextMusicReady', (updatedRoom: Room) => resolve(updatedRoom))
       socket?.once('error', (error) => reject(error))
     })
   }
@@ -189,7 +190,7 @@ export default function useSocketRoom() {
     leaveRoom,
     addToQueue,
     removeFromQueue,
-    updateRoom,
+    doUpdateRoom,
     doPlayNextMusic,
   }
 }

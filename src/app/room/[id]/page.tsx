@@ -20,7 +20,7 @@ const MusicRoomPage = ({ params }: IProps) => {
     (state) => state.openNotification
   )
 
-  const { room, leaveRoom, doPlayNextMusic } = useSocketRoom()
+  const { room, leaveRoom, doUpdateRoom, doPlayNextMusic } = useSocketRoom()
 
   const { id } = params
 
@@ -56,7 +56,7 @@ const MusicRoomPage = ({ params }: IProps) => {
 
   return (
     <div className="container flex h-full w-full justify-center">
-      <RoomWrapper room={room} onQuit={handleQuit} onPlayNextSong={doPlayNextMusic} />
+      <RoomWrapper room={room} onQuit={handleQuit} onUpdateRoom={doUpdateRoom} onPlayNextSong={doPlayNextMusic} />
     </div>
   )
 }
