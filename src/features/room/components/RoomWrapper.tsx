@@ -132,7 +132,7 @@ const RoomWrapper = ({
   useEffect(() => {
     if (playerState.isReady && room?.currentMusic) {
       playbackState.synchronizeWithRoom();
-      // playbackState.syncProgressTracking()
+      playbackState.syncProgressTracking()
       playbackState.setHasInitialized(true);
     }
   }, [playerState.isReady, room?.currentMusic?.id.videoId]);
