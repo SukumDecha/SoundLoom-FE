@@ -18,7 +18,6 @@ const ClientProvider = ({ children }: IComponentProps) => {
       )
       setIsDarkMode(prefersDarkScheme.matches)
 
-      // Add listener for changes in the preference
       const handleChange = (e: MediaQueryListEvent) => {
         setIsDarkMode(e.matches)
       }

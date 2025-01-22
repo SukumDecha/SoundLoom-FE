@@ -19,6 +19,7 @@ export interface Room {
   currentListeners: number
   currentMusic: Music | null
   queues: Music[]
+  previousMusic: Music[]
   settings: RoomSettings
 }
 

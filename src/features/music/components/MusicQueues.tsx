@@ -6,11 +6,11 @@ import MusicQueueDropdown from './modals/MusicQueueDropdown';
 
 interface MusicQueueProps {
     queue: Music[];
-    onSearchClick: () => void;
+    onSearch: () => void;
     onMusicSelect?: (music: Music) => void;
 }
 
-export const MusicQueue = ({ queue, onSearchClick, onMusicSelect }: MusicQueueProps) => {
+export const MusicQueue = ({ queue, onSearch, onMusicSelect }: MusicQueueProps) => {
     return (
         <div className="w-80 flex-none">
             <div className="mb-6 flex items-center justify-between">
@@ -19,7 +19,7 @@ export const MusicQueue = ({ queue, onSearchClick, onMusicSelect }: MusicQueuePr
 
             <div className="space-y-4">
                 <Button
-                    onClick={onSearchClick}
+                    onClick={onSearch}
                     className="flex w-full items-center justify-center gap-2 rounded-full bg-white/10 py-2 text-white hover:bg-white/20"
                 >
                     <span><SearchOutlined className="mr-1" /> Search Music</span>

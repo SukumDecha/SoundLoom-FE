@@ -20,13 +20,12 @@ const MusicRoomPage = ({ params }: IProps) => {
     (state) => state.openNotification
   )
 
-  const { room, leaveRoom, doUpdateRoom, doPlayNextMusic } = useSocketRoom()
+  const { room, leaveRoom, doUpdateRoom, doPlayNextMusic, doPlayPreviousMusic } = useSocketRoom()
 
   const { id } = params
 
   const handleQuit = async () => {
     try {
-      await leaveRoom(id)
       router.replace('/')
 
       openNotification({
@@ -54,9 +53,22 @@ const MusicRoomPage = ({ params }: IProps) => {
     validateSocket()
   }, [socket, room])
 
+  useEffect(() => {
+    return () => {
+      if (socket && room) {
+        leaveRoom(room.id)
+      }
+    };
+  }, []);
+
   return (
     <div className="container flex h-full w-full justify-center">
-      <RoomWrapper room={room} onQuit={handleQuit} onUpdateRoom={doUpdateRoom} onPlayNextSong={doPlayNextMusic} />
+      <RoomWrapper
+        room={room}
+        onQuit={handleQuit}
+        onUpdateRoom={doUpdateRoom}
+        onPlayPreviousSong={doPlayPreviousMusic}
+        onPlayNextSong={doPlayNextMusic} />
     </div>
   )
 }

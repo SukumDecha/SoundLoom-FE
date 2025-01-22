@@ -6,8 +6,10 @@ import {
     PauseOutlined,
     PlayCircleOutlined,
 } from '@ant-design/icons';
+import { Room } from '@/types/room';
 
-interface MusicControlsProps {
+interface IProps {
+    room: Room
     isPlaying: boolean;
     progress: number; // Current progress in seconds
     duration: number; // Total duration in seconds
@@ -27,7 +29,8 @@ export const MusicControls = ({
     onPause,
     onNext,
     onPrevious,
-}: MusicControlsProps) => {
+    room
+}: IProps) => {
     const seconds = Math.floor(progress * duration / 100)
     // Format time in MM:SS format
     const formatTime = (seconds: number) => {
@@ -51,8 +54,9 @@ export const MusicControls = ({
             <div className="mt-4 flex items-center justify-center gap-8">
                 <Button
                     type="text"
-                    className="text-white"
+                    className={`text-white ${room.previousMusic.length === 0 ? 'opacity-50' : ''}`}
                     icon={<StepBackwardOutlined />}
+                    disabled={!onPrevious || room.previousMusic.length === 0}
                     onClick={onPrevious}
                 />
                 <Button
@@ -63,7 +67,8 @@ export const MusicControls = ({
                 />
                 <Button
                     type="text"
-                    className="text-white"
+                    className={`text-white ${room.queues.length === 0 ? 'opacity-50' : ''}`}
+                    disabled={!onNext || room.queues.length === 0}
                     icon={<StepForwardOutlined />}
                     onClick={onNext}
                 />
