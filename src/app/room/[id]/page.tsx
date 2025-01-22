@@ -1,6 +1,6 @@
 'use client'
 
-import MusicRoom from '@/features/room/components/RoomWrapper'
+import RoomWrapper from '@/features/room/components/RoomWrapper'
 import useSocketRoom from '@/features/room/hooks/useSocketRoom'
 import { useNotificationStore } from '@/features/shared/stores/notification.store'
 import { useSocketStore } from '@/features/shared/stores/socket.store'
@@ -20,13 +20,12 @@ const MusicRoomPage = ({ params }: IProps) => {
     (state) => state.openNotification
   )
 
-  const { room, leaveRoom, handlePlayNextSong } = useSocketRoom()
+  const { room, leaveRoom, doUpdateRoom, doPlayNextMusic, doPlayPreviousMusic } = useSocketRoom()
 
   const { id } = params
 
   const handleQuit = async () => {
     try {
-      await leaveRoom(id)
       router.replace('/')
 
       openNotification({
@@ -54,9 +53,22 @@ const MusicRoomPage = ({ params }: IProps) => {
     validateSocket()
   }, [socket, room])
 
+  useEffect(() => {
+    return () => {
+      if (socket && room) {
+        leaveRoom(room.id)
+      }
+    };
+  }, []);
+
   return (
     <div className="container flex h-full w-full justify-center">
-      <MusicRoom room={room} onQuit={handleQuit} onPlayNextSong={handlePlayNextSong} />
+      <RoomWrapper
+        room={room}
+        onQuit={handleQuit}
+        onUpdateRoom={doUpdateRoom}
+        onPlayPreviousSong={doPlayPreviousMusic}
+        onPlayNextSong={doPlayNextMusic} />
     </div>
   )
 }

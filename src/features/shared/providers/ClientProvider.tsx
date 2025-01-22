@@ -2,7 +2,7 @@
 
 import { ConfigProvider, theme } from 'antd'
 import { useEffect, useState } from 'react'
-import { IComponentProps } from '../types'
+import { IComponentProps } from '@/types/shared'
 import Notification from '../components/Notification'
 import SocketProvider from './SocketProvider'
 
@@ -18,7 +18,6 @@ const ClientProvider = ({ children }: IComponentProps) => {
       )
       setIsDarkMode(prefersDarkScheme.matches)
 
-      // Add listener for changes in the preference
       const handleChange = (e: MediaQueryListEvent) => {
         setIsDarkMode(e.matches)
       }

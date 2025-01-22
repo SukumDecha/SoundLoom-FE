@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react'
 import { Row, Col, Typography, FloatButton } from 'antd'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'

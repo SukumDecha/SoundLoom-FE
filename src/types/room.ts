@@ -5,6 +5,7 @@ export interface RoomSettings {
     loop: boolean
     shuffle: boolean
     playing: boolean
+    startTimestamp: number | null;
   }
   room: {
     password: string | null
@@ -16,7 +17,14 @@ export interface Room {
   id: string
   host: string
   currentListeners: number
-  currentMusic: Music
+  currentMusic: Music | null
   queues: Music[]
+  previousMusic: Music[]
   settings: RoomSettings
+}
+
+export interface IPlaybackPayload {
+  currentTime: number
+  isPlaying: boolean
+  startTimestamp: number
 }

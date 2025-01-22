@@ -1,7 +1,7 @@
 import { Button, Form, Input, Modal } from 'antd'
 import { useNotificationStore } from '@/features/shared/stores/notification.store'
 import { useRouter } from 'next/navigation'
-import { IError } from '@/features/shared/types'
+import { IError } from '@/types/shared'
 import useSocketRoom from '../../hooks/useSocketRoom'
 
 interface IProps {
@@ -21,7 +21,7 @@ const CreateRoomModal = ({ open, onClose }: IProps) => {
   const handleCreateRoom = async (values: any) => {
     try {
       const roomId = await createRoom({
-        host: values.username,
+        host: values.roomName,
       })
 
       await joinRoom({ roomId })
@@ -48,16 +48,16 @@ const CreateRoomModal = ({ open, onClose }: IProps) => {
     <Modal title="Create Room" open={open} onCancel={onClose} footer={null}>
       <Form form={createRoomForm} onFinish={handleCreateRoom} layout="vertical">
         <Form.Item
-          name="username"
-          label="Your Username"
+          name="roomName"
+          label="Room Name"
           rules={[
             {
               required: true,
-              message: 'Please input your username',
+              message: 'Please fill in the room name',
             },
           ]}
         >
-          <Input placeholder="Enter your username" />
+          <Input placeholder="Fill up your room name" />
         </Form.Item>
 
         <Form.Item>

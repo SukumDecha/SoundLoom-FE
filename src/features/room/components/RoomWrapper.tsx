@@ -1,100 +1,257 @@
 'use client';
 
-import { useState, useRef, useEffect, SetStateAction } from 'react';
-import { Button } from 'antd';
-import {
-  RetweetOutlined,
-  SwapOutlined,
-  SoundOutlined,
-} from '@ant-design/icons';
+import { useState, useRef, useEffect } from 'react';;
 import Image from 'next/image';
 import YouTube from 'react-youtube';
-import { Room } from '@/types/room';
+import { IPlaybackPayload, Room } from '@/types/room';
 import SongSearchModal from '@/features/music/components/MusicSearchModal';
 import { MusicControls } from '@/features/music/components/MusicControls';
 import { MusicQueue } from '@/features/music/components/MusicQueues';
 import { VolumeControls } from '@/features/room/components/VolumeControls';
+import { useSocketStore } from '@/features/shared/stores/socket.store';
+import { youtubeOpts } from '@/features/shared/consts/youtube';
+import { Button } from 'antd';
+import { RetweetOutlined, SoundOutlined, SwapOutlined } from '@ant-design/icons';
 
 interface RoomWrapperProps {
   room: Room | null;
   onQuit: () => void;
-  onPlayNextSong: (roomId: string) => void;
+  onUpdateRoom: (payload: {
+    roomId: string;
+    updatedRoom: Partial<Room>;
+  }) => Promise<Room>;
+  onPlayPreviousSong: (roomId: string) => Promise<Room>;
+  onPlayNextSong: (roomId: string) => Promise<Room>;
 }
 
-const RoomWrapper = ({ room, onQuit, onPlayNextSong }: RoomWrapperProps) => {
+const RoomWrapper = ({
+  room,
+  onQuit,
+  onUpdateRoom,
+  onPlayPreviousSong,
+  onPlayNextSong,
+}: RoomWrapperProps) => {
+  // State
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isEnded, setIsEnded] = useState<boolean>(false);
+  const [isReady, setIsReady] = useState<boolean>(false);
   const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(50);
   const [progress, setProgress] = useState<number>(0);
-  const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
 
+  // Refs
+  const socket = useSocketStore((state) => state.socket);
   const playerRef = useRef<any>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (progressInterval.current) clearInterval(progressInterval.current);
-    };
-  }, []);
+  // Helper Functions
+  const resetPlaybackState = () => {
+    setHasInitialized(false);
+    setIsEnded(false);
+    setIsReady(false);
+    setProgress(0);
+    stopProgressTracking();
+  };
 
-  useEffect(() => {
-    if (room && !room.currentMusic && room.queues.length > 0) {
-      onPlayNextSong(room.id);
-    }
-  }, [room]);
+  const startProgressTracking = () => {
+    stopProgressTracking();
+    progressInterval.current = setInterval(() => {
+      if (playerRef.current) {
+        const currentTime = playerRef.current.getCurrentTime();
+        const newProgress = (currentTime / duration) * 100;
+        setProgress(newProgress);
+      }
+    }, 1000);
+  };
 
-  useEffect(() => {
-    if (isEnded && room) {
-      onPlayNextSong(room.id);
-      setIsEnded(false);
-    }
-  }, [isEnded]);
-
-  const handlePlay = () => {
-    if (playerRef.current) {
-      playerRef.current.playVideo();
-      setIsPlaying(true);
-      startProgressTracking();
+  const stopProgressTracking = () => {
+    if (progressInterval.current) {
+      clearInterval(progressInterval.current);
+      progressInterval.current = null;
     }
   };
 
-  const handlePause = () => {
-    if (playerRef.current) {
+  const synchronizeWithRoom = () => {
+    if (!playerRef.current || !isReady || !room?.currentMusic) return;
+
+    if (room.settings.music.playing && room.settings.music.startTimestamp) {
+      // Calculate elapsed time since the start timestamp
+      const elapsedTime = (Date.now() - room.settings.music.startTimestamp) / 1000;
+      playerRef.current.seekTo(elapsedTime);
+
+      playerRef.current.playVideo();
+      setIsPlaying(true);
+      startProgressTracking();
+    } else if (!room.settings.music.playing && room.settings.music.startTimestamp) {
+      playerRef.current.seekTo(room.settings.music.startTimestamp);
       playerRef.current.pauseVideo();
       setIsPlaying(false);
       stopProgressTracking();
     }
   };
 
-  const startProgressTracking = () => {
-    if (progressInterval.current) clearInterval(progressInterval.current);
-    progressInterval.current = setInterval(() => {
-      if (playerRef.current) {
-        const currentTime = playerRef.current.getCurrentTime();
-        setCurrentTime(currentTime);
-        setProgress((currentTime / duration) * 100);
-      }
-    }, 1000);
+  // Event Handlers
+  const doPlay = async () => {
+    if (!playerRef.current || !room) return;
+    const currentTime = playerRef.current.getCurrentTime();
+
+    try {
+      socket?.emit('updatePlayback', {
+        roomId: room.id,
+        currentTime,
+        isPlaying: true
+      });
+    } catch (error) {
+      console.error('Failed to update playback:', error);
+    }
   };
 
-  const stopProgressTracking = () => {
-    if (progressInterval.current) clearInterval(progressInterval.current);
+  const doPause = async () => {
+    if (!playerRef.current || !room) return;
+    const currentTime = playerRef.current.getCurrentTime();
+
+    try {
+      socket?.emit('updatePlayback', {
+        roomId: room.id,
+        currentTime,
+        isPlaying: false
+      });
+    } catch (error) {
+      console.error('Failed to update playback:', error);
+    }
   };
 
-  const handleProgressChange = (value: number) => {
+  const doPlayNextSong = async () => {
+    if (!room) return;
+
+    if (room.queues.length > 0) {
+      await onPlayNextSong(room.id);
+      resetPlaybackState();
+    } else {
+      await onUpdateRoom({
+        roomId: room.id,
+        updatedRoom: {
+          ...room,
+          currentMusic: null,
+        },
+      });
+      resetPlaybackState();
+    }
+  };
+
+  const doPlayPreviousSong = async () => {
+    if (!room?.previousMusic.length) return;
+    await onPlayPreviousSong(room.id);
+  };
+
+  const doSeekTo = (value: number) => {
+    if (!playerRef.current || !room) return;
     const newTime = (value / 100) * duration;
     setProgress(value);
-    setCurrentTime(newTime);
-    if (playerRef.current) playerRef.current.seekTo(newTime);
+
+    playerRef.current.seekTo(newTime);
+    socket?.emit('updatePlayback', {
+      roomId: room.id,
+      currentTime: newTime,
+      isPlaying: isPlaying,
+    });
   };
 
-  const handleVolumeChange = (value: number) => {
+  const doChangeVolume = (value: number) => {
     setVolume(value);
-    if (playerRef.current) playerRef.current.setVolume(value);
+    if (playerRef.current) {
+      playerRef.current.setVolume(value);
+    }
   };
 
+  const handleYouTubeStateChange = (event: { data: number }) => {
+    switch (event.data) {
+      case YouTube.PlayerState.PLAYING:
+        if (room?.settings.music.playing) {
+          setIsPlaying(true);
+          startProgressTracking();
+        } else {
+          setIsPlaying(false);
+          playerRef.current?.pauseVideo();
+        }
+        break;
+      case YouTube.PlayerState.PAUSED:
+        setIsPlaying(false);
+        stopProgressTracking();
+        break;
+      case YouTube.PlayerState.ENDED:
+        if (progress !== 0) {
+          setIsEnded(true);
+          stopProgressTracking();
+        }
+        break;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopProgressTracking();
+    };
+  }, []);
+
+  useEffect(() => {
+    const onPlaybackUpdated = (payload: IPlaybackPayload) => {
+      if (!playerRef.current || !isReady) return;
+
+      if (payload.isPlaying) {
+        const elapsedTime = (Date.now() - payload.startTimestamp) / 1000;
+        playerRef.current.seekTo(elapsedTime);
+        playerRef.current.playVideo();
+        setIsPlaying(true);
+        startProgressTracking();
+      } else {
+        playerRef.current.seekTo(payload.currentTime);
+        playerRef.current.pauseVideo();
+        setIsPlaying(false);
+        stopProgressTracking();
+      }
+    };
+
+    socket?.on('playbackUpdated', onPlaybackUpdated);
+    return () => {
+      socket?.off('playbackUpdated', onPlaybackUpdated);
+    };
+  }, [socket, isReady]);
+
+  useEffect(() => {
+    if (isEnded) {
+      doPlayNextSong();
+    }
+  }, [isEnded]);
+
+  useEffect(() => {
+    if (isReady && room?.currentMusic) {
+      synchronizeWithRoom();
+      setHasInitialized(true);
+    }
+  }, [isReady, room?.currentMusic?.id.videoId]);
+
+  useEffect(() => {
+    if (room && isReady && hasInitialized) {
+      synchronizeWithRoom();
+    }
+  }, [room?.settings.music.startTimestamp, room?.settings.music.playing]);
+
+  useEffect(() => {
+    if (room?.currentMusic?.id.videoId) {
+      resetPlaybackState();
+    }
+  }, [room?.id, room?.currentMusic?.id.videoId]);
+
+  useEffect(() => {
+    if (room && !room.currentMusic && room.queues.length > 0) {
+      doPlayNextSong();
+    }
+  }, [room]);
+
+  // Render
   if (!room) {
     return (
       <div className="grid h-screen w-full place-items-center bg-black text-white">
@@ -108,31 +265,15 @@ const RoomWrapper = ({ room, onQuit, onPlayNextSong }: RoomWrapperProps) => {
     );
   }
 
-  const youtubeOpts = {
-    height: '0',
-    width: '0',
-    playerVars: {
-      autoplay: 0,
-      controls: 0,
-      disablekb: 1,
-      fs: 0,
-      iv_load_policy: 3,
-      modestbranding: 1,
-      rel: 0,
-      showinfo: 0,
-    },
-  };
-
   return (
-    <div className="flex h-screen w-full bg-black text-white md:w-4/5">
-      <div className="flex flex-1 gap-6 p-8">
-        {/* Current Playing Section */}
+    <div className="w-full h-full bg-black text-white max-w-2xl">
+      <div className="flex flex-col md:flex-row flex-1 gap-6 p-8">
         <div className="flex-1">
           <div className="aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-purple-900 to-gray-900">
             {room.currentMusic?.id.videoId ? (
               <Image
-                src={`https://img.youtube.com/vi/${room.currentMusic.id.videoId}/0.jpg`}
-                alt="Album Art"
+                src={room.currentMusic.snippet.thumbnails.high.url}
+                alt={room.currentMusic.snippet.title}
                 className="h-full w-full object-cover"
                 width={400}
                 height={400}
@@ -154,46 +295,53 @@ const RoomWrapper = ({ room, onQuit, onPlayNextSong }: RoomWrapperProps) => {
           </div>
 
           <MusicControls
+            room={room}
             isPlaying={isPlaying}
             progress={progress}
-            onProgressChange={handleProgressChange}
-            onPlay={handlePlay}
-            onPause={handlePause}
+            onProgressChange={doSeekTo}
+            onPlay={doPlay}
+            onPause={doPause}
+            onNext={doPlayNextSong}
+            onPrevious={doPlayPreviousSong}
+            duration={duration}
           />
         </div>
 
         <div className="flex flex-col">
           <MusicQueue
             queue={room.queues}
-            onSearchClick={() => setIsSearchModalVisible(true)}
+            onSearch={() => setIsSearchModalVisible(true)}
           />
 
           <div className="mt-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button
-                  type="text"
-                  icon={<RetweetOutlined />}
-                  className={`flex h-8 w-8 items-center justify-center rounded-full ${room.settings.music.loop ? 'bg-green-500' : 'bg-white/10'
-                    } text-white hover:bg-white/20`}
-                />
+                  variant="outlined"
+                  size="small"
+                  className={`${room.settings.music.loop ? 'bg-primary text-primary-foreground' : ''
+                    }`}
+                >
+                  <RetweetOutlined className="h-4 w-4" />
+                </Button>
                 <Button
-                  type="text"
-                  icon={<SwapOutlined />}
-                  className={`flex h-8 w-8 items-center justify-center rounded-full ${room.settings.music.shuffle ? 'bg-green-500' : 'bg-white/10'
-                    } text-white hover:bg-white/20`}
-                />
+                  variant="solid"
+                  size="small"
+                  className={`${room.settings.music.shuffle ? 'bg-primary text-primary-foreground' : ''
+                    }`}
+                >
+                  <SwapOutlined className="h-4 w-4" />
+                </Button>
               </div>
 
-              <VolumeControls
-                volume={volume}
-                onVolumeChange={handleVolumeChange}
-              />
+              <VolumeControls volume={volume} onVolumeChange={doChangeVolume} />
             </div>
 
             <Button
               onClick={onQuit}
-              className="w-full rounded-full bg-red-600 text-white hover:bg-red-700"
+              color="danger"
+              size="small"
+              className="w-full"
             >
               Quit Room
             </Button>
@@ -210,21 +358,17 @@ const RoomWrapper = ({ room, onQuit, onPlayNextSong }: RoomWrapperProps) => {
         <YouTube
           videoId={room.currentMusic.id.videoId}
           opts={youtubeOpts}
-          onReady={(event: { target: { getDuration: () => SetStateAction<number>; }; }) => {
-            playerRef.current = event.target;
-            setDuration(event.target.getDuration());
-          }}
-          onStateChange={(event: { data: number; }) => {
-            if (event.data === YouTube.PlayerState.PLAYING) {
-              setIsPlaying(true);
-              startProgressTracking();
-            } else if (event.data === YouTube.PlayerState.PAUSED) {
-              setIsPlaying(false);
-              stopProgressTracking();
-            } else if (event.data === YouTube.PlayerState.ENDED) {
-              setIsEnded(true);
+          onReady={(event: { target: any }) => {
+            try {
+              playerRef.current = event.target;
+              setDuration(event.target.getDuration());
+              setIsReady(true);
+            } catch (error) {
+              console.error("Error in YouTube onReady:", error);
             }
           }}
+          onStateChange={handleYouTubeStateChange}
+          className="hidden"
         />
       )}
     </div>

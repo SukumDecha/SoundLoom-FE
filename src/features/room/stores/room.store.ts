@@ -8,14 +8,22 @@ type RoomStore = {
   ) => void
   allRooms: Room[]
   setAllRooms: (payload: Room[] | ((prevRooms: Room[]) => Room[])) => void
+  ownedRoomId: string | null
+  setOwnedRoomId: (payload: string | null) => void
 }
 
 export const useRoomStore = create<RoomStore>((set) => ({
   room: null,
+  ownedRoomId: null,
   allRooms: [],
   setRoom: (payload) => {
     set((state) => ({
       room: typeof payload === 'function' ? payload(state.room) : payload,
+    }))
+  },
+  setOwnedRoomId: (payload) => {
+    set((state) => ({
+      ownedRoomId: payload
     }))
   },
   setAllRooms: (payload) => {
