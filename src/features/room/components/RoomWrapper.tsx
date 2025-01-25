@@ -105,6 +105,16 @@ const RoomWrapper = ({
     playerState.setVolume(value);
   };
 
+  const handleToggleVolume = () => {
+    if (volume === 0) {
+      setVolume(50);
+      playerState.setVolume(50);
+    } else {
+      setVolume(0);
+      playerState.setVolume(0);
+    }
+  }
+
   const handleYouTubeStateChange = (event: { data: number }) => {
     switch (event.data) {
       case YouTube.PlayerState.PLAYING:
@@ -235,7 +245,7 @@ const RoomWrapper = ({
                 </Button>
               </div>
 
-              <VolumeControls volume={volume} onVolumeChange={handleVolumeChange} />
+              <VolumeControls volume={volume} onVolumeChange={handleVolumeChange} onToggleVolume={handleToggleVolume} />
             </div>
 
             <Button
