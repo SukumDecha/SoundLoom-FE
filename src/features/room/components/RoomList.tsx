@@ -24,12 +24,12 @@ const renderFloatButton = ({ onCreate, onDelete }: IFloatButtonProps) => (
       onClick={onCreate}
     />
 
-    <FloatButton
+    {/* <FloatButton
       icon={<DeleteOutlined />}
       type="primary"
       style={{ right: 24, bottom: 24 }}
       onClick={onDelete}
-    />
+    /> */}
   </FloatButton.Group>
 )
 
@@ -91,6 +91,7 @@ const RoomList: React.FC = () => {
         onCreate: () => setCreateRoomModal(true),
         onDelete: deleteAllRooms,
       })}
+
       <CreateRoomModal open={createRoomModal} onClose={handleCloseModal} />
     </div>
   )

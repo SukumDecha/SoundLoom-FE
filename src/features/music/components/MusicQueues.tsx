@@ -43,7 +43,7 @@ export const MusicQueue = ({ queue, onSearch, onMusicSelect }: MusicQueueProps) 
                                     />
                                 </div>
                                 <div className="flex-1 truncate">
-                                    <div className="font-medium">{music.snippet.title}</div>
+                                    <div className="font-medium text-white">{music.snippet.title}</div>
                                     <div className="text-sm text-gray-400">{music.snippet.channelTitle}</div>
                                 </div>
                                 <MusicQueueDropdown musicId={music.id.videoId}>

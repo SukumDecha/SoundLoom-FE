@@ -5,11 +5,16 @@ import { useSocketStore } from '@/features/shared/stores/socket.store'
 import { Room } from '../../../types/room'
 import { useRoomStore } from '../stores/room.store'
 import { withTimeout } from '@/features/shared/utils/TimerUtil'
+import { useNotificationStore } from '@/features/shared/stores/notification.store'
 
 
 export default function useSocketRoom() {
   const socket = useSocketStore((state) => state.socket)
   const { room, setRoom, allRooms, setAllRooms, setOwnedRoomId } = useRoomStore()
+
+  const openNotification = useNotificationStore(
+    (state) => state.openNotification
+  )
 
   // Function to initialize socket listeners
   const initializeListeners = () => {
@@ -46,8 +51,16 @@ export default function useSocketRoom() {
     const doRemoveAllRooms = () => {
       setRoom(null)
       setAllRooms([])
+
+      openNotification({
+        type: 'warning',
+        message: 'Your rooms have been deleted',
+        description: 'You have been redirected to the home page',
+      })
+
     }
 
+    socket.on('connect', doFetchRooms)
     socket.on('newRoomCreated', doFetchRooms)
     socket.on('roomUpdated', doUpdateRoom)
     socket.on('roomDeleted', doRemoveRoom)
@@ -57,6 +70,7 @@ export default function useSocketRoom() {
     })
 
     return () => {
+      socket.off('connect', doFetchRooms)
       socket.off('newRoomCreated', doFetchRooms)
       socket.off('roomUpdated', doUpdateRoom)
       socket.off('roomDeleted', doRemoveRoom)

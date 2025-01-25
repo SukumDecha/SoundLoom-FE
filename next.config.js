@@ -3,6 +3,8 @@ const nextConfig = {
   reactStrictMode: false,
   swcMinify: true,
   images: {
+    unoptimized: true,
+    domains: ['i.ytimg.com'], // Add the domain where your images are hosted
     remotePatterns: [
       {
         protocol: 'https',
