@@ -22,8 +22,6 @@ const MusicRoomPage = ({ params }: IProps) => {
 
   const { room, leaveRoom, doUpdateRoom, doPlayNextMusic, doPlayPreviousMusic } = useSocketRoom()
 
-  const { id } = params
-
   const handleQuit = async () => {
     try {
       router.replace('/')

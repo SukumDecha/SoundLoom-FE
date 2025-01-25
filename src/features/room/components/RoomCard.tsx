@@ -7,7 +7,7 @@ interface IProps {
   roomId: string
   host: string
   listeners: number
-  currentMusic: Music
+  currentMusic: Music | null
   onJoin: (roomId: string) => void
 }
 
