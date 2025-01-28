@@ -39,3 +39,5 @@ EXPOSE 3000
 
 # Start the Next.js application
 CMD ["pnpm", "start"]
+
+# docker run -p 3000:3000 --env-file .env nextjs-app
